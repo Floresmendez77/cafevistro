@@ -1,0 +1,6 @@
+{
+  "name": "Eco Tienda HN",
+  "description": "Tienda en línea líder en productos ecológicos y sostenibles en Honduras.",
+  "permissions": [],
+  "capabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

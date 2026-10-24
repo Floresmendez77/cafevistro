@@ -1,107 +1,34 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Eco Tienda HN - Cuida tu planeta, empieza por tu hogar</title>
-    <meta name="description" content="Tienda en línea líder en productos ecológicos y sostenibles en Honduras.">
-    <link rel="stylesheet" href="styles.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Café Vistro HN - Specialty Coffee Roasters & Tienda de Café</title>
+    <meta name="description" content="Tostaduría boutique de café de especialidad de Honduras. Granos de estricta altura, métodos de extracción artesanal y accesorios barista con empaques 100% ecológicos." />
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://cafevistro.hn" />
+    <meta property="og:title" content="Café Vistro HN - Specialty Coffee Roasters & Tienda de Café" />
+    <meta property="og:description" content="Café de especialidad de Marcala y Santa Bárbara, métodos V60, prensas francesas y accesorios barista con impacto ecológico sostenible." />
+    <meta property="og:image" content="/cafe_vistro_logo.jpg" />
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Café Vistro HN - Specialty Coffee Roasters" />
+    <meta name="twitter:description" content="Café de especialidad de Honduras con empaques compostables y métodos de extracción artesanales." />
+    <meta name="twitter:image" content="/cafe_vistro_logo.jpg" />
+
+    <link rel="icon" type="image/jpeg" href="/cafe_vistro_logo.jpg" />
+    
+    <!-- Google Fonts: Playfair Display + DM Sans -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300..800;1,9..40,300..800&family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
 </head>
-<body class="dark-theme">
-
-    <nav class="navbar">
-        <div class="navbar-brand">
-            <a href="#" id="brandLogo">
-                <img src="Gemini_Generated_Image_dfrefkdfrefkdfre.png" alt="Eco Tienda HN Logo">
-                SAMSUNG<span>HN</span>
-            </a>
-        </div>
-        <ul class="navbar-links">
-            <li><a href="#" class="nav-link" data-target="loginContainer">Inicio</a></li>
-            <li><a href="#" class="nav-link" data-target="contactContainer">Contacto</a></li>
-        </ul>
-        <div class="navbar-user-actions">
-            <a href="#" class="user-action-btn" title="Ajustes" id="settings-btn" data-modal-target="#modal-settings"><i class="fas fa-cog"></i></a>
-        </div>
-    </nav>
-
-    <div id="particle-container"></div>
-
-    <main class="main-container">
-        <!-- CONTENEDOR DE LOGIN -->
-        <div class="content-wrapper active" id="loginContainerWrapper">
-            <div class="form-container" id="loginContainer">
-                <h2>Bienvenido de Nuevo</h2>
-                <p class="slogan">"Cuida tu planeta, empieza por tu hogar"</p>
-                <form id="loginForm" novalidate>
-                    <div class="input-group"><label for="loginEmail"><i class="fas fa-envelope"></i> Correo Electrónico</label><input type="email" id="loginEmail" name="email" placeholder="tu.correo@ejemplo.com" required></div>
-                    <div class="input-group"><label for="loginPassword"><i class="fas fa-lock"></i> Contraseña</label><input type="password" id="loginPassword" name="password" placeholder="••••••••" required></div>
-                    <button type="submit" class="btn-submit">Iniciar Sesión</button>
-                </form>
-                <p class="form-message" id="loginMessage"></p>
-                <p>¿Eres nuevo? <a href="#" class="form-link" data-target="registerContainer">Crea una cuenta aquí</a></p>
-            </div>
-        </div>
-
-        <!-- CONTENEDOR DE REGISTRO -->
-        <div class="content-wrapper" id="registerContainerWrapper">
-            <div class="form-container" id="registerContainer">
-                <h2>Únete a la Comunidad Eco</h2>
-                <form id="registerForm" novalidate>
-                    <div class="input-group"><input type="text" name="nombre" placeholder="Nombre Completo" required></div>
-                    <div class="input-group"><input type="email" name="email" placeholder="Correo Electrónico" required></div>
-                    <div class="input-group"><input type="tel" name="telefono" placeholder="Número de Teléfono (+504)" required></div>
-                    <div class="input-group"><input type="password" name="password" placeholder="Crear Contraseña" required></div>
-                    <div class="input-group"><input type="password" name="confirm_password" placeholder="Confirmar Contraseña" required></div>
-                    <div class="input-group"><input type="text" name="direccion" placeholder="Dirección de Envío" required></div>
-                    <button type="submit" class="btn-submit">Registrarme</button>
-                </form>
-                <p class="form-message" id="registerMessage"></p>
-                <p>¿Ya tienes cuenta? <a href="#" class="form-link" data-target="loginContainer">Inicia sesión</a></p>
-            </div>
-        </div>
-
-        <!-- CONTENEDOR DE CONTACTO -->
-        <div class="content-wrapper" id="contactContainerWrapper">
-            <div class="contact-container" id="contactContainer">
-                <h2>Conecta con Nosotros</h2>
-                <div class="contact-info">
-                    <p><i class="fas fa-envelope"></i> <strong>Email:</strong> <a href="mailto:sthephenandrew56@gmail.com">sthephenandrew56@gmail.com</a></p>
-                    <p><i class="fab fa-whatsapp"></i> <strong>WhatsApp:</strong> <a href="https://wa.me/50487917652" target="_blank">+504 8791-7652</a></p>
-                </div>
-                <div class="social-links">
-                    <a href="https://instagram.com/ecotiendahn" target="_blank" title="Instagram"><i class="fab fa-instagram"></i></a>
-                    <a href="https://facebook.com/ecotiendahn" target="_blank" title="Facebook"><i class="fab fa-facebook-f"></i></a>
-                    <a href="https://tiktok.com/@ecotiendahn" target="_blank" title="TikTok"><i class="fab fa-tiktok"></i></a>
-                </div>
-                <h3>Nuestras Sucursales</h3>
-                <div class="location-list">
-                    <p><i class="fas fa-store"></i> <a href="https://maps.app.goo.gl/r6vS2GfB9E8u2e6y8" target="_blank">Mall Multiplaza</a></p>
-                    <p><i class="fas fa-store"></i> <a href="https://maps.app.goo.gl/mP2T3G4fBqN81xQy5" target="_blank">Mall Galerías</a></p>
-                </div>
-            </div>
-        </div>
-    </main>
-
-    <!-- MODAL AJUSTES -->
-    <div class="modal" id="modal-settings">
-        <div class="modal-content">
-            <button class="close-modal-btn">×</button>
-            <div class="modal-header">
-                <h2>Ajustes</h2>
-            </div>
-            <div class="modal-body">
-                <p>Elige tu tema preferido:</p>
-                <div class="theme-switcher">
-                    <button id="btn-dark-theme"><i class="fas fa-moon"></i> Oscuro</button>
-                    <button id="btn-light-theme"><i class="fas fa-sun"></i> Claro</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div id="modal-overlay"></div>
-    <script src="script.js"></script>
+<body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
 </body>
 </html>
