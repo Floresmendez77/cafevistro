@@ -3,13 +3,24 @@ node_modules/
 
 # Build
 dist/
+functions/lib/
 
 # Environment files
 .env
 .env.local
 .env.*.local
 
-# Local database dumps (preserves schema and seeds)
+# Firebase
+.firebase/
+firebase-debug.log
+firebase-debug.*.log
+firestore-debug.log
+ui-debug.log
+.emulator-data/
+serviceAccount*.json
+*-service-account*.json
+
+# Local database dumps (legacy)
 database/*.local.sql
 
 # OS and Editor files
@@ -17,5 +28,6 @@ database/*.local.sql
 Thumbs.db
 desktop.ini
 *.tmp
-.vscode/
+.vscode/*
+!.vscode/settings.json
 .idea/

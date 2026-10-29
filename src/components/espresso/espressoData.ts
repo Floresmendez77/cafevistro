@@ -344,3 +344,4 @@ export const TOPPING_OPTIONS = [
   { id: 'vainilla', name: 'Vaina de Vainilla de Roatán', priceMod: 12 },
   { id: 'miel', name: 'Miel de Abeja Silvestre de la Sierra', priceMod: 10 },
 ];
+

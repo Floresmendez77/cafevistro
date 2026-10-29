@@ -184,3 +184,4 @@ function calculateCart(mysqli $db, array $items): array {
         'items'    => $calculatedItems
     ];
 }
+

@@ -7,10 +7,16 @@
     "dev": "vite --host 0.0.0.0 --port 3000",
     "build": "tsc && vite build",
     "lint": "tsc --noEmit",
-    "preview": "vite preview --port 3000 --host 0.0.0.0"
+    "preview": "vite preview --port 3000 --host 0.0.0.0",
+    "emulators": "npm --prefix functions install && npm --prefix functions run build && firebase emulators:start --only auth,firestore,functions --project caffe-vistri",
+    "seed": "tsx scripts/seed.ts",
+    "functions:build": "npm --prefix functions run build",
+    "deploy:rules": "firebase deploy --only firestore:rules,firestore:indexes --project caffe-vistri",
+    "deploy:functions": "firebase deploy --only functions --project caffe-vistri"
   },
   "dependencies": {
     "clsx": "^2.1.1",
+    "firebase": "^11.10.0",
     "lucide-react": "^1.16.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
@@ -20,9 +26,13 @@
     "@types/react-dom": "^18.3.1",
     "@vitejs/plugin-react": "^4.3.3",
     "autoprefixer": "^10.4.20",
+    "firebase-admin": "^13.0.0",
+    "firebase-tools": "^14.0.0",
     "postcss": "^8.4.47",
     "tailwindcss": "^3.4.14",
+    "tsx": "^4.19.0",
     "typescript": "^5.6.3",
-    "vite": "^5.4.10"
+    "vite": "^5.4.10",
+    "vitest": "^2.1.9"
   }
 }

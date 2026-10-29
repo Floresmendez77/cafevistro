@@ -1,3 +1,4 @@
+import { FerrofluidBackground } from './FerrofluidBackground';
 import React, { useState, useEffect, useMemo } from 'react';
 import { useStore } from '../context/StoreContext';
 import { Product, ProductVariant } from '../types';
@@ -169,13 +170,7 @@ export const DashboardView: React.FC = () => {
 
   return (
     <div className="dashboard-container relative min-h-screen flex bg-gradient-to-b from-[#140B07] via-[#20140D] to-[#2B1A12] text-[#F8F1E9] font-sans overflow-x-hidden">
-      {/* Defocused Background Orbs for Parallax Glass Depth */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
-        <div className="orb-animate-1 absolute top-10 left-[10%] w-[32rem] h-[32rem] rounded-full bg-gradient-to-tr from-[#B89778]/18 via-amber-600/15 to-transparent blur-[110px]" />
-        <div className="orb-animate-2 absolute bottom-20 right-[5%] w-[38rem] h-[38rem] rounded-full bg-gradient-to-bl from-orange-950/30 via-[#B89778]/15 to-amber-700/20 blur-[130px]" />
-        <div className="absolute top-[45%] right-[30%] w-80 h-80 rounded-full bg-amber-500/10 blur-[90px]" />
-        <div className="absolute inset-0 bg-[radial-gradient(#ffffff08_1px,transparent_1px)] [background-size:28px_28px] opacity-30" />
-      </div>
+      <FerrofluidBackground theme="dark" />
 
       {/* Mobile Menu Backdrop */}
       {mobileMenuOpen && (
@@ -202,7 +197,7 @@ export const DashboardView: React.FC = () => {
       />
 
       {/* MAIN CONTENT AREA */}
-      <main className="main-content flex-1 p-6 md:p-10 lg:p-12 overflow-y-auto min-h-screen flex flex-col justify-between">
+      <main className="main-content relative z-10 flex-1 p-6 md:p-10 lg:p-12 overflow-y-auto min-h-screen flex flex-col justify-between">
         <div>
           <DashboardHeader
             firstName={firstName}

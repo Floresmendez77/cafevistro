@@ -20,3 +20,4 @@ try {
 } catch (Throwable $e) {
     jsonResponse(false, 'Error al obtener la lista de deseos.', null, 500);
 }
+

@@ -67,3 +67,4 @@ try {
 } catch (Throwable $e) {
     jsonResponse(false, 'Error al recuperar los pedidos.', null, 500);
 }
+

@@ -471,6 +471,43 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     showToast('Cupón de descuento removido.', 'info');
   };
 
+  // El descuento del cupón depende del subtotal: se re-valida en el servidor cuando cambia el carrito
+  useEffect(() => {
+    if (!appliedCoupon) return;
+    if (cart.length === 0) {
+      setAppliedCoupon(null);
+      setServerCouponDiscount(0);
+      return;
+    }
+    let cancelled = false;
+    const items = cart.map((c) => ({
+      productId: c.productId,
+      quantity: c.quantity,
+      variantId: c.selectedVariant?.id,
+      nombre_variante: c.selectedVariant?.nombre_variante,
+    }));
+    const timer = setTimeout(async () => {
+      try {
+        const res = await api.applyCoupon(appliedCoupon.code, items);
+        if (cancelled) return;
+        if (res.success && res.data) {
+          setServerCouponDiscount(res.data.descuento);
+        } else {
+          setAppliedCoupon(null);
+          setServerCouponDiscount(0);
+          showToast(`El cupón ya no aplica: ${res.message}`, 'info');
+        }
+      } catch {
+        /* sin conexión: se mantiene el último valor; el servidor recalcula al pagar */
+      }
+    }, 300);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cart, appliedCoupon?.code]);
+
   // Orders operation via Real API
   const createOrder = async (): Promise<{ success: boolean; orderId?: number; message: string }> => {
     if (!currentUser) {

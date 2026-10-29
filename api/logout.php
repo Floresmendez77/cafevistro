@@ -22,3 +22,4 @@ try {
 } catch (Throwable $e) {
     jsonResponse(false, 'Error al cerrar sesión.', null, 500);
 }
+

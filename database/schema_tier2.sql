@@ -241,3 +241,4 @@ INSERT INTO `pedido_items` (`pedido_id`, `producto_id`, `nombre`, `cantidad`, `p
 INSERT INTO `wishlist` (`usuario_id`, `producto_id`) VALUES
 (1, 1),
 (1, 2);
+

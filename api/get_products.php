@@ -40,3 +40,4 @@ try {
 } catch (Throwable $e) {
     jsonResponse(false, 'Error al obtener el catálogo de productos.', null, 500);
 }
+

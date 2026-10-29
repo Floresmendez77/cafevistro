@@ -47,7 +47,7 @@ export interface OrderItem {
 
 export interface Order {
   id: number;
-  usuario_id: number;
+  usuario_id: number | string;
   fecha_pedido: string;
   total: number;
   subtotal: number;
@@ -64,7 +64,7 @@ export interface Order {
 }
 
 export interface User {
-  id: number;
+  id: number | string;
   nombre_completo: string;
   email: string;
   telefono: string;

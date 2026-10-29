@@ -33,3 +33,4 @@ try {
 } catch (Throwable $e) {
     jsonResponse(false, 'Error al consultar la sesión.', null, 500);
 }
+

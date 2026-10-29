@@ -254,3 +254,4 @@ try {
     }
     jsonResponse(false, 'Error al procesar el pedido. No se realizó ningún cargo ni descuento de inventario.', null, 500);
 }
+

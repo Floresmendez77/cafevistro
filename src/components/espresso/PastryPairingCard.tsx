@@ -108,3 +108,4 @@ export const PastryPairingCard: React.FC<PastryPairingCardProps> = ({
     </div>
   );
 };
+

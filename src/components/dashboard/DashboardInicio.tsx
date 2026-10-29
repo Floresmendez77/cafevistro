@@ -197,3 +197,4 @@ export const DashboardInicio: React.FC<DashboardInicioProps> = ({
     </section>
   );
 };
+

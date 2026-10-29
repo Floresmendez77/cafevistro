@@ -74,3 +74,4 @@ try {
 } catch (Throwable $e) {
     jsonResponse(false, 'Error interno durante el inicio de sesión.', null, 500);
 }
+

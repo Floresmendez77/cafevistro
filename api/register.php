@@ -66,3 +66,4 @@ try {
 } catch (Throwable $e) {
     jsonResponse(false, 'Ocurrió un error al procesar el registro.', null, 500);
 }
+

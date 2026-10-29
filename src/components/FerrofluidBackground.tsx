@@ -168,6 +168,11 @@ function compileShader(gl: WebGLRenderingContext, type: number, src: string): We
   return sh;
 }
 
+const PALETTES = {
+  dark: { colors: ['#C9A57F', '#E6C9A8', '#9A7552'], opacity: 0.72, glow: 2.1 },
+  light: { colors: ['#6B4423', '#8B5A2B', '#4A2E1B'], opacity: 0.3, glow: 1.6 },
+} as const;
+
 export const FerrofluidBackground: React.FC<FerrofluidBackgroundProps> = ({
   theme = 'dark',
   className = '',
@@ -177,13 +182,10 @@ export const FerrofluidBackground: React.FC<FerrofluidBackgroundProps> = ({
 
   const isDark = theme === 'dark';
 
-  // Coffee palette:
-  // Dark: ['#B89778','#D4B99F','#8A6A4E'] on #1C120C
-  // Light: darker browns, lower opacity, on #F8F1E9
-  const colors = isDark
-    ? ['#B89778', '#D4B99F', '#8A6A4E']
-    : ['#6B4423', '#8B5A2B', '#4A2E1B'];
-  const opacity = isDark ? 0.55 : 0.28;
+  // Paleta estable: se calcula una sola vez por tema. Antes el array se recreaba en
+  // cada render y, al estar en las dependencias del efecto, destruía y recreaba el
+  // contexto WebGL cada vez que el componente padre se re-renderizaba.
+  const { colors, opacity, glow } = PALETTES[isDark ? 'dark' : 'light'];
 
   useEffect(() => {
     const container = containerRef.current;
@@ -287,7 +289,7 @@ export const FerrofluidBackground: React.FC<FerrofluidBackgroundProps> = ({
       U[name] = gl.getUniformLocation(program, name);
     });
 
-    const colorPrep = prepColors(colors);
+    const colorPrep = prepColors([...colors]);
     for (let i = 0; i < MAX_COLORS; i++) {
       const idx = i * 3;
       gl.uniform3f(U['uColor' + i], colorPrep.arr[idx], colorPrep.arr[idx + 1], colorPrep.arr[idx + 2]);
@@ -301,7 +303,7 @@ export const FerrofluidBackground: React.FC<FerrofluidBackgroundProps> = ({
     gl.uniform1f(U.uRimWidth, 0.18);
     gl.uniform1f(U.uSharpness, 2.6);
     gl.uniform1f(U.uShimmer, 1.2);
-    gl.uniform1f(U.uGlow, 1.6);
+    gl.uniform1f(U.uGlow, glow);
     gl.uniform1f(U.uOpacity, opacity);
     gl.uniform1f(U.uMouseEnabled, 1.0);
     gl.uniform1f(U.uMouseStrength, 0.8);
@@ -391,7 +393,7 @@ export const FerrofluidBackground: React.FC<FerrofluidBackgroundProps> = ({
         canvas.parentElement.removeChild(canvas);
       }
     };
-  }, [theme, colors, opacity]);
+  }, [colors, opacity, glow]);
 
   return (
     <div

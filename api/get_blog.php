@@ -16,3 +16,4 @@ try {
 } catch (Throwable $e) {
     jsonResponse(false, 'Error al obtener los artículos de blog.', null, 500);
 }
+

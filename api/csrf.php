@@ -7,3 +7,4 @@ try {
 } catch (Throwable $e) {
     jsonResponse(false, 'Error interno del servidor.', null, 500);
 }
+

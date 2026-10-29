@@ -100,3 +100,4 @@ export const DashboardPedidos: React.FC<DashboardPedidosProps> = ({
     </section>
   );
 };
+
