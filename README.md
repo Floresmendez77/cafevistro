@@ -1,26 +1,25 @@
-# Eco Tienda HN
+# Café Vistro HN
 
-**Eco Tienda HN** ("Cuida tu planeta, empieza por tu hogar") es una plataforma de comercio electrónico y panel de usuario para productos ecológicos, biodegradables y sostenibles en Honduras.
+**Café Vistro HN** ("Specialty Coffee Roasters & Tienda de Café") es una plataforma web completa de comercio electrónico y panel de clientes para una tostaduría boutique y cafetería de especialidad en Honduras.
 
 ## Características Principales
 
-- **Diseño Moderno & Fiel**: Reescrito en React + Vite + TypeScript, preservando la identidad visual original ("Coffee Mist" para el panel de usuario y modo Oscuro/Claro para la vista pública).
-- **Fondo Interactivo de Partículas**: Efecto de partículas dinámicas que interactúan con el cursor.
-- **Catálogo Detallado de Productos**:
-  - Filtros por categoría y barra de búsqueda en tiempo real.
-  - Tarjetas expandibles con especificaciones ecológicas completas.
-  - Selector de variantes (ej. presentaciones por peso) y selector de cantidades (+/-).
-- **Carrito de Compras y Canje de Puntos**:
-  - Selector de sucursal para recogida en tienda (Mall Multiplaza en Tegucigalpa o Mall Galerías en San Pedro Sula).
-  - Sistema de Puntos Eco: canje de puntos por descuentos directos en lempiras (L.).
+- **Diseño Moderno & Fiel**: Stack React + Vite + TypeScript con Tailwind CSS, preservando la paleta "Coffee Mist" y soporte de modo Oscuro / Claro.
+- **Fondo Interactivo**: Experiencia visual dinámica optimizada con fallback estático para accesibilidad.
+- **Catálogo de Café y Accesorios**:
+  - Filtros por categoría y búsqueda en tiempo real.
+  - Granos de origen (Marcala, Geisha), métodos de extracción (V60, Prensa Francesa, Chorreador) y repostería artesanal.
+  - Selector de variantes (peso, molienda, tueste) y cantidades.
+- **Carrito y Puntos Eco**:
+  - Sucursales de retiro: Mall Multiplaza (Tegucigalpa) y Mall Galerías (San Pedro Sula).
+  - Canje de puntos de fidelidad por descuentos directos en lempiras (L.).
+  - Validación y cálculo de cupones y totales en servidor.
 - **Historial de Pedidos ("Mis Pedidos")**:
-  - Consulta de estados de pedidos (Pendiente, En Proceso, Entregado), totales y desglose de artículos.
-- **Blog Educativo**:
-  - Artículos sobre consumo responsable, materiales biodegradables y cuidado de cuencas de agua en Honduras.
-- **Políticas y Requisitos Legales**:
-  - Información detallada sobre envíos, garantías de devolución de 15 días, seguridad SSL y requerimientos mercantiles de Honduras (SAR / RTN).
-- **Autenticación y Perfil**:
-  - Inicio de sesión y registro de clientes con almacenamiento seguro local.
+  - Desglose detallado de ítems, estado del pedido y comprobante.
+- **Blog de Barismo y Cultura de Café**:
+  - Artículos sobre métodos de extracción, perfiles de tueste y sostenibilidad ambiental.
+- **Autenticación Segura**:
+  - Sesiones HTTPOnly, protección CSRF y contraseñas hasheadas con bcrypt.
 
 ## Ejecución
 

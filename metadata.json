@@ -1,6 +1,6 @@
 {
-  "name": "Eco Tienda HN",
-  "description": "Tienda en línea líder en productos ecológicos y sostenibles en Honduras.",
+  "name": "Café Vistro HN",
+  "description": "Cafetería de especialidad y tostaduría artesanal en Honduras.",
   "permissions": [],
-  "capabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+  "capabilities": []
 }
