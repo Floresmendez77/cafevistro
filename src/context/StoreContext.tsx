@@ -1,17 +1,13 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { Product, ProductVariant, CartItem, Order, User, BlogPost, ToastMessage, Coupon } from '../types';
-import { INITIAL_PRODUCTS, INITIAL_USER, INITIAL_ORDERS, BLOG_POSTS } from '../data/initialData';
-
-const VALID_COUPONS: Coupon[] = [
-  { code: 'CAFE15', type: 'percent', value: 15, description: '15% de descuento en tu orden' },
-  { code: 'VISTRO50', type: 'fixed', value: 50, description: 'L. 50.00 de descuento directo' },
-  { code: 'BARISTA20', type: 'percent', value: 20, description: '20% especial para miembros del Club' },
-];
+import { INITIAL_PRODUCTS, BLOG_POSTS } from '../data/initialData';
+import { api } from '../services/api';
 
 export const FREE_SHIPPING_THRESHOLD = 500.0;
 
 interface StoreContextType {
   currentUser: User | null;
+  isLoadingUser: boolean;
   login: (email: string, pass: string) => Promise<{ success: boolean; message: string }>;
   register: (userData: {
     nombre: string;
@@ -20,9 +16,10 @@ interface StoreContextType {
     direccion: string;
     password: string;
   }) => Promise<{ success: boolean; message: string }>;
-  logout: () => void;
+  logout: () => Promise<void>;
 
   products: Product[];
+  isLoadingProducts: boolean;
   blogPosts: BlogPost[];
 
   // Cart
@@ -42,7 +39,7 @@ interface StoreContextType {
 
   // Coupon
   appliedCoupon: Coupon | null;
-  applyCoupon: (code: string) => { success: boolean; message: string };
+  applyCoupon: (code: string) => Promise<{ success: boolean; message: string }>;
   removeCoupon: () => void;
   couponDiscount: number;
   freeShippingProgress: number;
@@ -50,13 +47,15 @@ interface StoreContextType {
 
   // Wishlist
   wishlist: number[];
-  toggleWishlist: (productId: number) => void;
+  toggleWishlist: (productId: number) => Promise<void>;
 
   // Orders
   orders: Order[];
+  isLoadingOrders: boolean;
   createOrder: () => Promise<{ success: boolean; orderId?: number; message: string }>;
   lastCreatedOrder: Order | null;
   setLastCreatedOrder: (order: Order | null) => void;
+  refreshOrders: () => Promise<void>;
 
   // Theme & Navigation
   theme: 'dark' | 'light';
@@ -84,10 +83,11 @@ interface StoreContextType {
 
 const StoreContext = createContext<StoreContextType | undefined>(undefined);
 
-const POINTS_TO_LEMPIRAS = 0.10; // 10 eco points = 1 Lempira
+// 1 Point = L. 1.00 server-side
+const POINTS_TO_LEMPIRAS = 1.0;
 
 export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Theme state with system preference fallback
+  // Theme state (persisted)
   const [theme, setThemeState] = useState<'dark' | 'light'>(() => {
     const saved = localStorage.getItem('theme');
     if (saved === 'dark' || saved === 'light') return saved;
@@ -102,66 +102,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     localStorage.setItem('theme', t);
   };
 
-  // User state
-  const [currentUser, setCurrentUser] = useState<User | null>(() => {
-    const saved = localStorage.getItem('ecotienda_currentUser');
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (e) {
-        console.error(e);
-      }
-    }
-    return INITIAL_USER;
-  });
-
-  // Registered users database in localStorage
-  const [registeredUsers, setRegisteredUsers] = useState<Array<User & { passwordHash: string }>>(() => {
-    const saved = localStorage.getItem('ecotienda_registered_users');
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (e) {
-        console.error(e);
-      }
-    }
-    return [
-      {
-        ...INITIAL_USER,
-        passwordHash: 'demo123',
-      },
-    ];
-  });
-
-  // Wishlist state (persisted in localStorage)
-  const [wishlist, setWishlist] = useState<number[]>(() => {
-    const saved = localStorage.getItem('ecotienda_wishlist');
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (e) {
-        console.error(e);
-      }
-    }
-    return [1, 2]; // Marcala and Geisha favorited by default
-  });
-
-  // Orders state
-  const [orders, setOrders] = useState<Order[]>(() => {
-    const saved = localStorage.getItem('ecotienda_orders');
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (e) {
-        console.error(e);
-      }
-    }
-    return INITIAL_ORDERS;
-  });
-
-  // Cart state (persisted across sessions)
+  // Cart state (persisted)
   const [cart, setCart] = useState<CartItem[]>(() => {
-    const saved = localStorage.getItem('ecotienda_cart');
+    const saved = localStorage.getItem('cafe_vistro_cart') || localStorage.getItem('ecotienda_cart');
     if (saved) {
       try {
         return JSON.parse(saved);
@@ -172,9 +115,26 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return [];
   });
 
-  const [pickupLocation, setPickupLocation] = useState<string>('multiplaza');
+  // User state (SESSION ONLY - no passwords or sensitive user data in localStorage)
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [isLoadingUser, setIsLoadingUser] = useState<boolean>(true);
+
+  // Catalog & Content states
+  const [products, setProducts] = useState<Product[]>(INITIAL_PRODUCTS);
+  const [isLoadingProducts, setIsLoadingProducts] = useState<boolean>(true);
+  const [blogPosts, setBlogPosts] = useState<BlogPost[]>(BLOG_POSTS);
+
+  // Orders & Wishlist
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [isLoadingOrders, setIsLoadingOrders] = useState<boolean>(false);
+  const [wishlist, setWishlist] = useState<number[]>([]);
+
+  // Checkout states
+  const [pickupLocation, setPickupLocation] = useState<string>('Mall Multiplaza');
   const [discountApplied, setDiscountApplied] = useState<boolean>(false);
   const [appliedCoupon, setAppliedCoupon] = useState<Coupon | null>(null);
+  const [serverCouponDiscount, setServerCouponDiscount] = useState<number>(0);
+
   const [activeSection, setActiveSection] = useState<'inicio' | 'catalogo' | 'espresso-bar' | 'mis-pedidos' | 'blog' | 'carrito'>('inicio');
 
   // Modals & Drawers state
@@ -188,117 +148,137 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   // Toasts
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
 
-  const showToast = (message: string, type: 'info' | 'success' | 'error' = 'info') => {
+  const showToast = useCallback((message: string, type: 'info' | 'success' | 'error' = 'info') => {
     const id = Date.now().toString() + Math.random().toString().slice(2, 6);
     setToasts((prev) => [...prev, { id, message, type }]);
     setTimeout(() => {
-      removeToast(id);
+      setToasts((prev) => prev.filter((t) => t.id !== id));
     }, 4500);
-  };
+  }, []);
 
-  const removeToast = (id: string) => {
+  const removeToast = useCallback((id: string) => {
     setToasts((prev) => prev.filter((t) => t.id !== id));
-  };
+  }, []);
 
-  // Sync state to localStorage
+  // Cleanup old security risks from localStorage
   useEffect(() => {
-    if (currentUser) {
-      localStorage.setItem('ecotienda_currentUser', JSON.stringify(currentUser));
-    } else {
+    try {
       localStorage.removeItem('ecotienda_currentUser');
+      localStorage.removeItem('ecotienda_registered_users');
+      localStorage.removeItem('ecotienda_orders');
+      localStorage.removeItem('ecotienda_wishlist');
+    } catch (e) {
+      // ignore
     }
-  }, [currentUser]);
+  }, []);
 
+  // Sync cart to localStorage
   useEffect(() => {
-    localStorage.setItem('ecotienda_registered_users', JSON.stringify(registeredUsers));
-  }, [registeredUsers]);
-
-  useEffect(() => {
-    localStorage.setItem('ecotienda_orders', JSON.stringify(orders));
-  }, [orders]);
-
-  useEffect(() => {
-    localStorage.setItem('ecotienda_cart', JSON.stringify(cart));
+    try {
+      localStorage.setItem('cafe_vistro_cart', JSON.stringify(cart));
+    } catch (e) {
+      console.error(e);
+    }
   }, [cart]);
 
-  useEffect(() => {
-    localStorage.setItem('ecotienda_wishlist', JSON.stringify(wishlist));
-  }, [wishlist]);
+  // Load orders & wishlist helper
+  const loadUserData = useCallback(async () => {
+    try {
+      setIsLoadingOrders(true);
+      const [wishlistRes, ordersRes] = await Promise.allSettled([
+        api.getWishlist(),
+        api.getOrders(),
+      ]);
 
-  // Wishlist operations
-  const toggleWishlist = (productId: number) => {
-    const isCurrentlyWishlisted = wishlist.includes(productId);
-    const updated = isCurrentlyWishlisted
-      ? wishlist.filter((id) => id !== productId)
-      : [...wishlist, productId];
-    setWishlist(updated);
-
-    const product = INITIAL_PRODUCTS.find((p) => p.id === productId);
-    const title = product ? product.nombre : 'Producto';
-    if (isCurrentlyWishlisted) {
-      showToast(`"${title}" eliminado de tu lista de deseos.`, 'info');
-    } else {
-      showToast(`¡"${title}" guardado en tu lista de deseos!`, 'success');
-    }
-  };
-
-  // Coupon operations
-  const applyCoupon = (rawCode: string): { success: boolean; message: string } => {
-    const cleanCode = rawCode.trim().toUpperCase();
-    const found = VALID_COUPONS.find((c) => c.code === cleanCode);
-
-    if (!found) {
-      showToast('Código de cupón no válido o expirado.', 'error');
-      return { success: false, message: 'Cupón no válido. Prueba CAFE15 o VISTRO50.' };
-    }
-
-    setAppliedCoupon(found);
-    showToast(`¡Cupón "${found.code}" aplicado con éxito! (${found.description})`, 'success');
-    return { success: true, message: `¡Cupón ${found.code} aplicado!` };
-  };
-
-  const removeCoupon = () => {
-    setAppliedCoupon(null);
-    showToast('Cupón de descuento removido.', 'info');
-  };
-
-  // Auth methods
-  const login = async (email: string, pass: string): Promise<{ success: boolean; message: string }> => {
-    const cleanEmail = email.trim().toLowerCase();
-    const cleanPass = pass.trim();
-
-    if (!cleanEmail || !cleanPass) {
-      return { success: false, message: 'Por favor, ingresa tu correo y contraseña.' };
-    }
-
-    const found = registeredUsers.find((u) => u.email.toLowerCase() === cleanEmail);
-    if (!found) {
-      if (cleanEmail === 'sthephenandrew56@gmail.com') {
-        setCurrentUser(INITIAL_USER);
-        showToast(`¡Bienvenido de nuevo, ${INITIAL_USER.nombre_completo.split(' ')[0]}!`, 'success');
-        return { success: true, message: `¡Bienvenido de nuevo, ${INITIAL_USER.nombre_completo.split(' ')[0]}!` };
+      if (wishlistRes.status === 'fulfilled' && wishlistRes.value.success && Array.isArray(wishlistRes.value.data)) {
+        setWishlist(wishlistRes.value.data);
       }
-      return { success: false, message: 'No se encontró una cuenta con ese correo electrónico.' };
+      if (ordersRes.status === 'fulfilled' && ordersRes.value.success && Array.isArray(ordersRes.value.data)) {
+        setOrders(ordersRes.value.data);
+      }
+    } catch (err) {
+      console.warn('[StoreContext] Could not load user orders/wishlist:', err);
+    } finally {
+      setIsLoadingOrders(false);
+    }
+  }, []);
+
+  // INITIAL BOOTSTRAP: Session check, Catalog, Blog
+  useEffect(() => {
+    let isMounted = true;
+
+    async function init() {
+      try {
+        // 1. Check session
+        const meRes = await api.getMe();
+        if (isMounted) {
+          if (meRes.success && meRes.data?.user) {
+            setCurrentUser(meRes.data.user);
+            loadUserData();
+          } else {
+            setCurrentUser(null);
+          }
+          setIsLoadingUser(false);
+        }
+      } catch (err) {
+        if (isMounted) {
+          setCurrentUser(null);
+          setIsLoadingUser(false);
+        }
+      }
+
+      // 2. Fetch catalog products from DB
+      try {
+        const prodRes = await api.getProducts();
+        if (isMounted && prodRes.success && Array.isArray(prodRes.data) && prodRes.data.length > 0) {
+          setProducts(prodRes.data);
+        }
+      } catch (err) {
+        console.warn('[StoreContext] Using initial products fallback');
+      } finally {
+        if (isMounted) setIsLoadingProducts(false);
+      }
+
+      // 3. Fetch blog posts
+      try {
+        const blogRes = await api.getBlog();
+        if (isMounted && blogRes.success && Array.isArray(blogRes.data) && blogRes.data.length > 0) {
+          setBlogPosts(blogRes.data);
+        }
+      } catch (err) {
+        console.warn('[StoreContext] Using initial blog posts fallback');
+      }
     }
 
-    if (found.passwordHash !== cleanPass && cleanPass !== 'demo123') {
-      return { success: false, message: 'La contraseña no es correcta. Inténtalo de nuevo.' };
-    }
+    init();
 
-    const userObj: User = {
-      id: found.id,
-      nombre_completo: found.nombre_completo,
-      email: found.email,
-      telefono: found.telefono,
-      direccion: found.direccion,
-      eco_points: found.eco_points,
+    return () => {
+      isMounted = false;
     };
+  }, [loadUserData]);
 
-    setCurrentUser(userObj);
-    showToast(`¡Bienvenido de nuevo, ${userObj.nombre_completo.split(' ')[0]}!`, 'success');
-    return { success: true, message: `¡Bienvenido de nuevo, ${userObj.nombre_completo.split(' ')[0]}!` };
+  // Auth: Login
+  const login = async (email: string, pass: string): Promise<{ success: boolean; message: string }> => {
+    try {
+      const res = await api.login({ email, password: pass });
+      if (res.success && res.data?.user) {
+        setCurrentUser(res.data.user);
+        loadUserData();
+        showToast(`¡Bienvenido de nuevo, ${res.data.user.nombre_completo.split(' ')[0]}!`, 'success');
+        return { success: true, message: res.message };
+      } else {
+        const msg = res.message || 'Credenciales inválidas.';
+        showToast(msg, 'error');
+        return { success: false, message: msg };
+      }
+    } catch (err: any) {
+      const msg = err?.message || 'Error de conexión con el servidor.';
+      showToast(msg, 'error');
+      return { success: false, message: msg };
+    }
   };
 
+  // Auth: Register
   const register = async (userData: {
     nombre: string;
     email: string;
@@ -306,37 +286,69 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     direccion: string;
     password: string;
   }): Promise<{ success: boolean; message: string }> => {
-    const cleanEmail = userData.email.trim().toLowerCase();
-    const existing = registeredUsers.find((u) => u.email.toLowerCase() === cleanEmail);
+    try {
+      const res = await api.register({
+        nombre_completo: userData.nombre,
+        email: userData.email,
+        password: userData.password,
+        telefono: userData.telefono,
+        direccion: userData.direccion,
+      });
 
-    if (existing) {
-      return { success: false, message: 'Este correo electrónico ya ha sido registrado.' };
+      if (res.success && res.data?.user) {
+        setCurrentUser(res.data.user);
+        showToast('¡Registro completado! Se han acreditado 50 Puntos Eco de bienvenida.', 'success');
+        return { success: true, message: res.message };
+      } else {
+        const msg = res.message || 'Error al registrar la cuenta.';
+        showToast(msg, 'error');
+        return { success: false, message: msg };
+      }
+    } catch (err: any) {
+      const msg = err?.message || 'Error al conectar con el servidor.';
+      showToast(msg, 'error');
+      return { success: false, message: msg };
     }
-
-    const newUser: User & { passwordHash: string } = {
-      id: Date.now(),
-      nombre_completo: userData.nombre.trim(),
-      email: cleanEmail,
-      telefono: userData.telefono.trim(),
-      direccion: userData.direccion.trim(),
-      eco_points: 50,
-      passwordHash: userData.password,
-    };
-
-    setRegisteredUsers((prev) => [...prev, newUser]);
-    showToast('¡Registro completado! Se han acreditado 50 Puntos Eco de bienvenida.', 'success');
-    return {
-      success: true,
-      message: '¡Registro completado! Ahora puedes iniciar sesión con tu cuenta.',
-    };
   };
 
-  const logout = () => {
-    setCurrentUser(null);
-    setCart([]);
-    setDiscountApplied(false);
-    setAppliedCoupon(null);
-    showToast('Sesión cerrada correctamente. ¡Hasta pronto!', 'info');
+  // Auth: Logout
+  const logout = async () => {
+    try {
+      await api.logout();
+    } catch (e) {
+      // ignore
+    } finally {
+      setCurrentUser(null);
+      setOrders([]);
+      setWishlist([]);
+      setCart([]);
+      setDiscountApplied(false);
+      setAppliedCoupon(null);
+      showToast('Sesión cerrada correctamente. ¡Hasta pronto!', 'info');
+    }
+  };
+
+  // Wishlist toggle
+  const toggleWishlist = async (productId: number) => {
+    if (!currentUser) {
+      showToast('Inicia sesión para guardar productos en tu lista de deseos.', 'info');
+      return;
+    }
+
+    try {
+      const res = await api.toggleWishlist(productId);
+      if (res.success && res.data) {
+        if (res.data.in_wishlist) {
+          setWishlist((prev) => [...prev, productId]);
+          showToast('¡Producto agregado a tus favoritos!', 'success');
+        } else {
+          setWishlist((prev) => prev.filter((id) => id !== productId));
+          showToast('Producto eliminado de favoritos.', 'info');
+        }
+      }
+    } catch (err) {
+      showToast('No se pudo actualizar la lista de deseos.', 'error');
+    }
   };
 
   // Cart operations
@@ -391,6 +403,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setCart([]);
     setDiscountApplied(false);
     setAppliedCoupon(null);
+    setServerCouponDiscount(0);
   };
 
   const cartCount = cart.reduce((acc, item) => acc + item.quantity, 0);
@@ -400,85 +413,164 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const freeShippingProgress = Math.min(100, (cartSubtotal / FREE_SHIPPING_THRESHOLD) * 100);
   const amountNeededForFreeShipping = Math.max(0, FREE_SHIPPING_THRESHOLD - cartSubtotal);
 
-  // Points Discount calculation
+  // Points Discount calculation (1 point = L. 1.00)
   const userPoints = currentUser?.eco_points || 0;
   const potentialPointsDiscount = userPoints * POINTS_TO_LEMPIRAS;
-  const maxPointsDiscount = Math.min(potentialPointsDiscount, cartSubtotal * 0.5);
+  const maxPointsDiscount = Math.min(potentialPointsDiscount, cartSubtotal);
   const discountAmount = discountApplied ? Math.round(maxPointsDiscount * 100) / 100 : 0;
 
-  // Coupon Discount calculation
-  let couponDiscount = 0;
-  if (appliedCoupon && cartSubtotal > 0) {
-    if (appliedCoupon.type === 'percent') {
-      couponDiscount = Math.round((cartSubtotal * (appliedCoupon.value / 100)) * 100) / 100;
-    } else {
-      couponDiscount = Math.min(cartSubtotal, appliedCoupon.value);
-    }
-  }
-
-  const totalDiscount = discountAmount + couponDiscount;
+  // Coupon Discount
+  const couponDiscount = appliedCoupon ? serverCouponDiscount : 0;
+  const totalDiscount = Math.min(cartSubtotal, discountAmount + couponDiscount);
   const cartTotal = Math.max(0, cartSubtotal - totalDiscount);
 
-  // Orders operation
-  const createOrder = async (): Promise<{ success: boolean; orderId?: number; message: string }> => {
-    if (!currentUser) {
-      return { success: false, message: 'Debes iniciar sesión para realizar un pedido.' };
+  // Coupon operations with Server-side revalidation
+  const applyCoupon = async (rawCode: string): Promise<{ success: boolean; message: string }> => {
+    const cleanCode = rawCode.trim().toUpperCase();
+    if (!cleanCode) {
+      return { success: false, message: 'Ingresa un código de cupón válido.' };
     }
     if (cart.length === 0) {
+      showToast('Agrega productos al carrito antes de aplicar un cupón.', 'error');
       return { success: false, message: 'El carrito está vacío.' };
     }
 
-    const newOrderId = Math.floor(Math.random() * 8999) + 1000;
-    const branchName = pickupLocation === 'multiplaza' ? 'Mall Multiplaza' : 'Mall Galerías';
+    try {
+      const itemsPayload = cart.map((c) => ({
+        productId: c.productId,
+        quantity: c.quantity,
+        variantId: c.selectedVariant?.id,
+        nombre_variante: c.selectedVariant?.nombre_variante,
+      }));
 
-    const pointsEarned = Math.max(5, Math.floor(cartTotal * 0.10));
-    const pointsDeducted = discountApplied ? Math.round(discountAmount / POINTS_TO_LEMPIRAS) : 0;
-    const updatedPoints = Math.max(0, currentUser.eco_points - pointsDeducted + pointsEarned);
+      const res = await api.applyCoupon(cleanCode, itemsPayload);
+      if (res.success && res.data) {
+        setAppliedCoupon({
+          code: res.data.code,
+          type: res.data.tipo,
+          value: res.data.valor,
+          description: `Descuento ${res.data.tipo === 'percent' ? `${res.data.valor}%` : `L. ${res.data.valor}`}`,
+        });
+        setServerCouponDiscount(res.data.descuento);
+        showToast(res.message, 'success');
+        return { success: true, message: res.message };
+      } else {
+        showToast(res.message, 'error');
+        return { success: false, message: res.message };
+      }
+    } catch (err: any) {
+      const msg = err?.message || 'Error al validar el cupón.';
+      showToast(msg, 'error');
+      return { success: false, message: msg };
+    }
+  };
 
-    const newOrder: Order = {
-      id: newOrderId,
-      usuario_id: currentUser.id,
-      fecha_pedido: new Date().toISOString().split('T')[0],
-      total: cartTotal,
-      subtotal: cartSubtotal,
-      descuento: totalDiscount,
-      descuento_cupon: couponDiscount,
-      cupon_aplicado: appliedCoupon?.code,
-      sucursal: branchName,
-      estado: 'pendiente',
-      puntos_ganados: pointsEarned,
-      items: cart.map((c) => ({
-        id: c.productId,
-        nombre: c.nombre,
-        cantidad: c.quantity,
-        precio_unitario: c.unitPrice,
-        imagen_url: c.imagen_url,
-        variante: c.selectedVariant?.nombre_variante,
-      })),
-    };
+  const removeCoupon = () => {
+    setAppliedCoupon(null);
+    setServerCouponDiscount(0);
+    showToast('Cupón de descuento removido.', 'info');
+  };
 
-    setOrders((prev) => [newOrder, ...prev]);
-    setCurrentUser((prev) => (prev ? { ...prev, eco_points: updatedPoints } : null));
-    setLastCreatedOrder(newOrder);
-    clearCart();
+  // Orders operation via Real API
+  const createOrder = async (): Promise<{ success: boolean; orderId?: number; message: string }> => {
+    if (!currentUser) {
+      showToast('Debes iniciar sesión para realizar un pedido.', 'error');
+      return { success: false, message: 'Debes iniciar sesión para realizar un pedido.' };
+    }
+    if (cart.length === 0) {
+      showToast('El carrito está vacío.', 'error');
+      return { success: false, message: 'El carrito está vacío.' };
+    }
 
-    showToast(`¡Pedido #${newOrderId} realizado con éxito! Notificación enviada a tu correo.`, 'success');
-    return {
-      success: true,
-      orderId: newOrderId,
-      message: '¡Pedido realizado con éxito! Revisa tu correo para la confirmación.',
-    };
+    try {
+      const itemsPayload = cart.map((c) => ({
+        productId: c.productId,
+        quantity: c.quantity,
+        variantId: c.selectedVariant?.id,
+        nombre_variante: c.selectedVariant?.nombre_variante,
+      }));
+
+      const payload = {
+        items: itemsPayload,
+        sucursal: pickupLocation,
+        cupon_codigo: appliedCoupon ? appliedCoupon.code : undefined,
+        puntos_canjeados: discountApplied ? Math.min(currentUser.eco_points, Math.floor(discountAmount)) : 0,
+      };
+
+      const res = await api.createOrder(payload);
+      if (res.success && res.data) {
+        const orderId = res.data.order_id;
+        const newOrder: Order = {
+          id: orderId,
+          usuario_id: currentUser.id,
+          fecha_pedido: new Date().toISOString().split('T')[0],
+          total: res.data.total,
+          subtotal: res.data.subtotal,
+          descuento: res.data.descuento_cupon + res.data.descuento_puntos,
+          descuento_cupon: res.data.descuento_cupon,
+          cupon_aplicado: appliedCoupon?.code,
+          sucursal: res.data.sucursal,
+          estado: 'pendiente',
+          puntos_ganados: res.data.puntos_ganados,
+          puntos_canjeados: res.data.puntos_canjeados,
+          items: cart.map((c) => ({
+            id: c.productId,
+            nombre: c.nombre,
+            cantidad: c.quantity,
+            precio_unitario: c.unitPrice,
+            imagen_url: c.imagen_url,
+            variante: c.selectedVariant?.nombre_variante,
+          })),
+        };
+
+        setCurrentUser((prev) =>
+          prev ? { ...prev, eco_points: res.data.eco_points_balance } : null
+        );
+        setOrders((prev) => [newOrder, ...prev]);
+        setLastCreatedOrder(newOrder);
+        clearCart();
+
+        showToast(`¡Pedido #${orderId} confirmado! Tu café se está preparando.`, 'success');
+        return {
+          success: true,
+          orderId,
+          message: res.message,
+        };
+      } else {
+        const msg = res.message || 'Error al procesar el pedido.';
+        showToast(msg, 'error');
+        return { success: false, message: msg };
+      }
+    } catch (err: any) {
+      const msg = err?.message || 'Error al conectar con el servidor para registrar el pedido.';
+      showToast(msg, 'error');
+      return { success: false, message: msg };
+    }
+  };
+
+  const refreshOrders = async () => {
+    if (!currentUser) return;
+    try {
+      const res = await api.getOrders();
+      if (res.success && Array.isArray(res.data)) {
+        setOrders(res.data);
+      }
+    } catch (e) {
+      // ignore
+    }
   };
 
   return (
     <StoreContext.Provider
       value={{
         currentUser,
+        isLoadingUser,
         login,
         register,
         logout,
-        products: INITIAL_PRODUCTS,
-        blogPosts: BLOG_POSTS,
+        products,
+        isLoadingProducts,
+        blogPosts,
         cart,
         addToCart,
         removeFromCart,
@@ -501,9 +593,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         wishlist,
         toggleWishlist,
         orders,
+        isLoadingOrders,
         createOrder,
         lastCreatedOrder,
         setLastCreatedOrder,
+        refreshOrders,
         theme,
         setTheme,
         activeSection,

@@ -1,4 +1,5 @@
 export interface ProductVariant {
+  id?: number;
   nombre_variante: string;
   precio_adicional: number;
 }
@@ -20,8 +21,8 @@ export interface Product {
 export interface Coupon {
   code: string;
   type: 'percent' | 'fixed';
-  value: number; // e.g. 15 for 15% or 50 for L. 50.00
-  description: string;
+  value: number;
+  description?: string;
   minPurchase?: number;
 }
 
@@ -54,9 +55,12 @@ export interface Order {
   descuento_cupon?: number;
   cupon_aplicado?: string;
   sucursal: string;
-  estado: 'pendiente' | 'en proceso' | 'entregado';
+  estado: 'pendiente' | 'en proceso' | 'en_proceso' | 'entregado' | 'cancelado';
   items: OrderItem[];
   puntos_ganados: number;
+  puntos_canjeados?: number;
+  cliente_nombre?: string;
+  cliente_email?: string;
 }
 
 export interface User {
@@ -66,6 +70,16 @@ export interface User {
   telefono: string;
   direccion: string;
   eco_points: number;
+  role?: 'cliente' | 'admin';
+}
+
+export interface Branch {
+  id: number;
+  nombre: string;
+  ciudad: string;
+  direccion: string;
+  telefono?: string;
+  horario?: string;
 }
 
 export interface BlogPost {
