@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useStore } from '../context/StoreContext';
 import { NavbarPublic } from './NavbarPublic';
-import { ParticleBackground } from './ParticleBackground';
+import { FerrofluidBackground } from './FerrofluidBackground';
 
 export const PublicAuthView: React.FC = () => {
   const { login, register, theme } = useStore();
@@ -106,7 +106,7 @@ export const PublicAuthView: React.FC = () => {
         color: isLight ? '#2A1C15' : '#F8F1E9'
       }}
     >
-      <ParticleBackground color="#B89778" theme={theme} />
+      <FerrofluidBackground theme={theme} />
 
       <NavbarPublic currentTab={currentTab} setCurrentTab={setCurrentTab} />
 
